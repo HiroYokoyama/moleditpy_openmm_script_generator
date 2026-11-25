@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 0.1.0 — without leading v)'
+        required: true
+      dry_run:
+        description: 'Dry run — build the zip but do NOT publish (true/false)'
+        required: false
+        default: 'false'
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Materialize the shared periodic modules
+        run: python3 scripts/materialize_shared.py
+
+      - name: Resolve version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Verify version matches plugin source
+        run: python scripts/release_common.py verify --version "$VERSION"
+
+      - name: Create and push tag
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true'
+        run: |
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
+
+      - name: Build release package
+        run: python scripts/release_common.py package --version "$VERSION"
+
+      - name: List zip contents (dry-run verification)
+        if: github.event.inputs.dry_run == 'true'
+        run: |
+          echo "=== DRY RUN: zip contents ==="
+          unzip -l "openmm_script_generator_${VERSION}.zip"
+
+      - name: Create GitHub Release
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/release_common.py publish --version "$VERSION"
+
+      - name: Trigger moleditpy-plugins registry update
+        if: success() && github.event.inputs.dry_run != 'true'
+        continue-on-error: true
+        env:
+          REGISTRY_PAT: ${{ secrets.REGISTRY_PAT }}
+        run: python scripts/release_common.py notify --version "$VERSION"
