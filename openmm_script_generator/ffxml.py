@@ -29,6 +29,7 @@ from typing import Dict, List, Optional, Tuple
 from xml.sax.saxutils import quoteattr
 
 from .mdff import MdffDocument, MdffMoleculeType
+from .symmetry import automorphisms
 
 #: Residue names OpenMM already knows bonds for (Topology._standardBonds) or
 #: rewrites through pdbNames.xml.  Templates never take these names.
@@ -184,6 +185,26 @@ def build_ffxml(doc: MdffDocument, residue_names: Optional[Dict[str, str]] = Non
         templates[mol_type.name] = TemplateInfo(mol_type.name, template, resname, names, water)
         types = [f"{template}-{i}" for i in range(mol_type.n_atoms)]
         extra = extras.setdefault(resname, [])
+        symmetry = _Symmetry(mol_type)
+        coulomb14, lj14 = scale_factors(doc)
+        for index in symmetry.asymmetric_atoms():
+            atom = mol_type.atoms[index]
+            extra.append(
+                {
+                    "kind": "nonbonded",
+                    "atoms": [names[index]],
+                    "charge": atom.charge,
+                    "sigma": atom.sigma,
+                    "epsilon": atom.epsilon,
+                    "coulomb14": coulomb14,
+                    "lj14": lj14,
+                }
+            )
+        if symmetry.asymmetric_masses():
+            warnings.append(
+                f"{mol_type.name}: equivalent atoms have different masses; OpenMM may assign "
+                "them to either atom."
+            )
 
         for t, atom in zip(types, mol_type.atoms):
             atom_types.append(
@@ -227,7 +248,7 @@ def build_ffxml(doc: MdffDocument, residue_names: Optional[Dict[str, str]] = Non
         for i, j, k_atom, theta0, k in mol_type.angles:
             key = _chain_key((i, j, k_atom))
             chain = frozenset((i, j)) in bonded and frozenset((j, k_atom)) in bonded
-            if not chain or key in seen_angles:
+            if not chain or key in seen_angles or not symmetry.angle_invariant((i, j, k_atom)):
                 extra.append(
                     {
                         "kind": "angle",
@@ -250,6 +271,9 @@ def build_ffxml(doc: MdffDocument, residue_names: Optional[Dict[str, str]] = Non
             atoms = (i, j, k_atom, l_atom)
             term = (n, math.radians(phase), k)
             if k == 0.0:
+                continue
+            if not symmetry.torsion_invariant(atoms, improper):
+                extra.append(_torsion_extra(names, atoms, term))
                 continue
             if not improper:
                 chain = (
@@ -336,8 +360,9 @@ def build_ffxml(doc: MdffDocument, residue_names: Optional[Dict[str, str]] = Non
             *improper_charmm,
             " </PeriodicTorsionForce>",
         ]
+    coulomb14, lj14 = scale_factors(doc)
     lines += [
-        f' <NonbondedForce coulomb14scale="{_fmt(doc.fudge_qq)}" lj14scale="{_fmt(doc.fudge_lj)}">',
+        f' <NonbondedForce coulomb14scale="{_fmt(coulomb14)}" lj14scale="{_fmt(lj14)}">',
         '  <UseAttributeFromResidue name="charge"/>',
         *nonbonded_lines,
         " </NonbondedForce>",
@@ -347,8 +372,120 @@ def build_ffxml(doc: MdffDocument, residue_names: Optional[Dict[str, str]] = Non
     return FfxmlResult("\n".join(lines), templates, extras, warnings)
 
 
+#: OpenMM refuses to combine NonbondedForce tags whose 1-4 scales differ by
+#: more than 1e-5, so the usual rounded Amber value 0.8333 is written as 5/6.
+SCALE_SNAP = 1e-3
+
+
+def scale_factors(doc: MdffDocument) -> Tuple[float, float]:
+    """(coulomb14scale, lj14scale) as written to the XML."""
+    coulomb = doc.fudge_qq
+    if abs(coulomb - 5.0 / 6.0) < SCALE_SNAP:
+        coulomb = 5.0 / 6.0
+    return coulomb, doc.fudge_lj
+
+
+#: 1-4 scales of OpenMM's built-in families (coulomb, lj)
+BUILTIN_SCALES = {"amber14": (5.0 / 6.0, 0.5), "charmm36": (1.0, 1.0), "none": (5.0 / 6.0, 0.5)}
+
+
+def scale_conflict(doc: MdffDocument, family: str, files) -> str:
+    """Explanation when the mdff 1-4 scales cannot be combined with ``files``."""
+    if not files:
+        return ""
+    coulomb, lj = scale_factors(doc)
+    ref_coulomb, ref_lj = BUILTIN_SCALES.get(family, (5.0 / 6.0, 0.5))
+    if abs(coulomb - ref_coulomb) <= 1e-5 and abs(lj - ref_lj) <= 1e-5:
+        return ""
+    return (
+        f"The moleditpy-mdff file scales 1-4 interactions by {doc.fudge_qq:g} (Coulomb) and "
+        f"{doc.fudge_lj:g} (LJ), but the built-in {family} files use {ref_coulomb:.4g} and "
+        f"{ref_lj:g}. OpenMM cannot combine force fields with different 1-4 scales: choose "
+        "a force field family with the same scales, or 'None' with water model 'None' so "
+        "that every molecule comes from the mdff file."
+    )
+
+
 def _escape(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+class _Symmetry:
+    """Which parameters of a molecule type survive OpenMM's symmetric atom mapping."""
+
+    def __init__(self, mol_type: MdffMoleculeType):
+        self.mol_type = mol_type
+        n = mol_type.n_atoms
+        bonds = [(i, j) for i, j, _r, _k in mol_type.bonds]
+        perms, complete = automorphisms(mol_type.elements, bonds)
+        self.perms = [p for p in perms if any(a != b for a, b in enumerate(p))]
+        self.complete = complete
+        if not complete:  # assume any atoms of one element and degree may be swapped
+            degree = [0] * n
+            for i, j in bonds:
+                degree[i] += 1
+                degree[j] += 1
+            self.group = {a: (mol_type.atoms[a].element, degree[a]) for a in range(n)}
+            groups: Dict[tuple, List[int]] = {}
+            for a in range(n):
+                groups.setdefault(self.group[a], []).append(a)
+            self.free = {a for g in groups.values() if len(g) > 1 for a in g}
+        self.angles: Dict[tuple, list] = {}
+        for i, j, k, theta0, kk in mol_type.angles:
+            self.angles.setdefault(_chain_key((i, j, k)), []).append((round(theta0, 9), round(kk, 6)))
+        self.torsions: Dict[tuple, list] = {}
+        for i, j, k, l, n_, phase, kk, improper in mol_type.torsions:
+            if kk == 0.0:
+                continue
+            key = (_chain_key((i, j, k, l)), improper)
+            self.torsions.setdefault(key, []).append((n_, round(phase, 9), round(kk, 6)))
+        for table in (self.angles, self.torsions):
+            for value in table.values():
+                value.sort()
+
+    def _atoms_fixed(self, atoms) -> bool:
+        return all(a not in self.free for a in atoms)
+
+    def asymmetric_atoms(self) -> List[int]:
+        atoms = self.mol_type.atoms
+
+        def params(a):
+            return (round(atoms[a].charge, 9), round(atoms[a].sigma, 9), round(atoms[a].epsilon, 9))
+
+        if not self.complete:
+            by_group: Dict[tuple, set] = {}
+            for a in self.free:
+                by_group.setdefault(self.group[a], set()).add(params(a))
+            return sorted(a for a in self.free if len(by_group[self.group[a]]) > 1)
+        bad = set()
+        for perm in self.perms:
+            for a, b in enumerate(perm):
+                if params(a) != params(b):
+                    bad.add(a)
+        return sorted(bad)
+
+    def asymmetric_masses(self) -> bool:
+        atoms = self.mol_type.atoms
+        return any(
+            abs(atoms[a].mass - atoms[b].mass) > 1e-9 for perm in self.perms for a, b in enumerate(perm)
+        )
+
+    def angle_invariant(self, atoms) -> bool:
+        if not self.complete:
+            return self._atoms_fixed(atoms)
+        reference = self.angles.get(_chain_key(atoms))
+        return all(
+            self.angles.get(_chain_key(tuple(p[a] for a in atoms))) == reference for p in self.perms
+        )
+
+    def torsion_invariant(self, atoms, improper) -> bool:
+        if not self.complete:
+            return self._atoms_fixed(atoms)
+        reference = self.torsions.get((_chain_key(atoms), improper))
+        return all(
+            self.torsions.get((_chain_key(tuple(p[a] for a in atoms)), improper)) == reference
+            for p in self.perms
+        )
 
 
 def _torsion_line(tag: str, types: List[str], terms) -> str:
