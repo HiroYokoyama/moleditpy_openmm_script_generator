@@ -279,7 +279,9 @@ def document_warnings(doc: MdffDocument) -> List[str]:
             "by OpenMM's NonbondedForce, which always uses Lorentz-Berthelot (rule 2)."
         )
     for mol_type in doc.molecule_types:
-        if mol_type.exclusions_nrexcl != 3:
+        nrexcl = mol_type.exclusions_nrexcl
+        # Exclusions beyond the molecule's longest path change nothing.
+        if (nrexcl < 3 and mol_type.n_atoms >= 4) or (nrexcl > 3 and mol_type.n_atoms >= 5):
             warnings.append(
                 f"{mol_type.name}: nrexcl = {mol_type.exclusions_nrexcl}; OpenMM always "
                 "excludes 1-2 and 1-3 pairs and scales 1-4 pairs (nrexcl = 3)."

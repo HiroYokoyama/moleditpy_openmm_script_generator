@@ -1,0 +1,369 @@
+{
+ "format": "moleditpy-mdff",
+ "version": 1,
+ "source": "Hand-written example: one ethanol (illustrative GAFF-style parameters)",
+ "combination_rule": 2,
+ "fudge_lj": 0.5,
+ "fudge_qq": 0.8333,
+ "molecule_types": [
+  {
+   "name": "ETOH",
+   "atoms": [
+    {
+     "name": "C1",
+     "element": "C",
+     "type": "c3",
+     "charge": -0.099,
+     "mass": 12.011,
+     "sigma": 0.339967,
+     "epsilon": 0.45773
+    },
+    {
+     "name": "C2",
+     "element": "C",
+     "type": "c3",
+     "charge": 0.1157,
+     "mass": 12.011,
+     "sigma": 0.339967,
+     "epsilon": 0.45773
+    },
+    {
+     "name": "O1",
+     "element": "O",
+     "type": "oh",
+     "charge": -0.601,
+     "mass": 15.999,
+     "sigma": 0.306647,
+     "epsilon": 0.880314
+    },
+    {
+     "name": "H11",
+     "element": "H",
+     "type": "hc",
+     "charge": 0.0327,
+     "mass": 1.008,
+     "sigma": 0.264953,
+     "epsilon": 0.065689
+    },
+    {
+     "name": "H12",
+     "element": "H",
+     "type": "hc",
+     "charge": 0.0327,
+     "mass": 1.008,
+     "sigma": 0.264953,
+     "epsilon": 0.065689
+    },
+    {
+     "name": "H13",
+     "element": "H",
+     "type": "hc",
+     "charge": 0.0327,
+     "mass": 1.008,
+     "sigma": 0.264953,
+     "epsilon": 0.065689
+    },
+    {
+     "name": "H21",
+     "element": "H",
+     "type": "h1",
+     "charge": 0.0446,
+     "mass": 1.008,
+     "sigma": 0.247135,
+     "epsilon": 0.065689
+    },
+    {
+     "name": "H22",
+     "element": "H",
+     "type": "h1",
+     "charge": 0.0446,
+     "mass": 1.008,
+     "sigma": 0.247135,
+     "epsilon": 0.065689
+    },
+    {
+     "name": "HO1",
+     "element": "H",
+     "type": "ho",
+     "charge": 0.397,
+     "mass": 1.008,
+     "sigma": 0.0,
+     "epsilon": 0.0
+    }
+   ],
+   "bonds": [
+    {
+     "i": 0,
+     "j": 1,
+     "r0": 0.1535,
+     "k": 253634.0
+    },
+    {
+     "i": 1,
+     "j": 2,
+     "r0": 0.1426,
+     "k": 263592.0
+    },
+    {
+     "i": 0,
+     "j": 3,
+     "r0": 0.1092,
+     "k": 282001.6
+    },
+    {
+     "i": 0,
+     "j": 4,
+     "r0": 0.1092,
+     "k": 282001.6
+    },
+    {
+     "i": 0,
+     "j": 5,
+     "r0": 0.1092,
+     "k": 282001.6
+    },
+    {
+     "i": 1,
+     "j": 6,
+     "r0": 0.1093,
+     "k": 281080.0
+    },
+    {
+     "i": 1,
+     "j": 7,
+     "r0": 0.1093,
+     "k": 281080.0
+    },
+    {
+     "i": 2,
+     "j": 8,
+     "r0": 0.0974,
+     "k": 309281.0
+    }
+   ],
+   "angles": [
+    {
+     "i": 1,
+     "j": 0,
+     "k_atom": 3,
+     "theta0": 109.5,
+     "k": 384.928
+    },
+    {
+     "i": 1,
+     "j": 0,
+     "k_atom": 4,
+     "theta0": 109.5,
+     "k": 384.928
+    },
+    {
+     "i": 1,
+     "j": 0,
+     "k_atom": 5,
+     "theta0": 109.5,
+     "k": 384.928
+    },
+    {
+     "i": 3,
+     "j": 0,
+     "k_atom": 4,
+     "theta0": 109.5,
+     "k": 384.928
+    },
+    {
+     "i": 3,
+     "j": 0,
+     "k_atom": 5,
+     "theta0": 109.5,
+     "k": 384.928
+    },
+    {
+     "i": 4,
+     "j": 0,
+     "k_atom": 5,
+     "theta0": 109.5,
+     "k": 384.928
+    },
+    {
+     "i": 0,
+     "j": 1,
+     "k_atom": 2,
+     "theta0": 109.5,
+     "k": 384.928
+    },
+    {
+     "i": 0,
+     "j": 1,
+     "k_atom": 6,
+     "theta0": 109.5,
+     "k": 384.928
+    },
+    {
+     "i": 0,
+     "j": 1,
+     "k_atom": 7,
+     "theta0": 109.5,
+     "k": 384.928
+    },
+    {
+     "i": 2,
+     "j": 1,
+     "k_atom": 6,
+     "theta0": 109.5,
+     "k": 384.928
+    },
+    {
+     "i": 2,
+     "j": 1,
+     "k_atom": 7,
+     "theta0": 109.5,
+     "k": 384.928
+    },
+    {
+     "i": 6,
+     "j": 1,
+     "k_atom": 7,
+     "theta0": 109.5,
+     "k": 384.928
+    },
+    {
+     "i": 1,
+     "j": 2,
+     "k_atom": 8,
+     "theta0": 108.2,
+     "k": 384.928
+    }
+   ],
+   "torsions": [
+    {
+     "i": 3,
+     "j": 0,
+     "k_atom": 1,
+     "l": 2,
+     "periodicity": 3,
+     "phase": 0.0,
+     "k": 0.650863,
+     "improper": false
+    },
+    {
+     "i": 3,
+     "j": 0,
+     "k_atom": 1,
+     "l": 6,
+     "periodicity": 3,
+     "phase": 0.0,
+     "k": 0.650863,
+     "improper": false
+    },
+    {
+     "i": 3,
+     "j": 0,
+     "k_atom": 1,
+     "l": 7,
+     "periodicity": 3,
+     "phase": 0.0,
+     "k": 0.650863,
+     "improper": false
+    },
+    {
+     "i": 4,
+     "j": 0,
+     "k_atom": 1,
+     "l": 2,
+     "periodicity": 3,
+     "phase": 0.0,
+     "k": 0.650863,
+     "improper": false
+    },
+    {
+     "i": 4,
+     "j": 0,
+     "k_atom": 1,
+     "l": 6,
+     "periodicity": 3,
+     "phase": 0.0,
+     "k": 0.650863,
+     "improper": false
+    },
+    {
+     "i": 4,
+     "j": 0,
+     "k_atom": 1,
+     "l": 7,
+     "periodicity": 3,
+     "phase": 0.0,
+     "k": 0.650863,
+     "improper": false
+    },
+    {
+     "i": 5,
+     "j": 0,
+     "k_atom": 1,
+     "l": 2,
+     "periodicity": 3,
+     "phase": 0.0,
+     "k": 0.650863,
+     "improper": false
+    },
+    {
+     "i": 5,
+     "j": 0,
+     "k_atom": 1,
+     "l": 6,
+     "periodicity": 3,
+     "phase": 0.0,
+     "k": 0.650863,
+     "improper": false
+    },
+    {
+     "i": 5,
+     "j": 0,
+     "k_atom": 1,
+     "l": 7,
+     "periodicity": 3,
+     "phase": 0.0,
+     "k": 0.650863,
+     "improper": false
+    },
+    {
+     "i": 0,
+     "j": 1,
+     "k_atom": 2,
+     "l": 8,
+     "periodicity": 3,
+     "phase": 0.0,
+     "k": 0.697347,
+     "improper": false
+    },
+    {
+     "i": 6,
+     "j": 1,
+     "k_atom": 2,
+     "l": 8,
+     "periodicity": 3,
+     "phase": 0.0,
+     "k": 0.697347,
+     "improper": false
+    },
+    {
+     "i": 7,
+     "j": 1,
+     "k_atom": 2,
+     "l": 8,
+     "periodicity": 3,
+     "phase": 0.0,
+     "k": 0.697347,
+     "improper": false
+    }
+   ],
+   "exclusions_nrexcl": 3
+  }
+ ],
+ "system": [
+  {
+   "type": "ETOH",
+   "count": 1,
+   "atom_offset": 0
+  }
+ ]
+}
