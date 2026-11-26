@@ -14,7 +14,7 @@ import numpy as np
 
 from . import cell as cell_mod
 from .ffxml import build_ffxml, scale_conflict
-from .mdff import MdffDocument, match_system
+from .mdff import MdffDocument, match_system, without_ff14sb
 from .options import PERIODIC_METHODS, forcefield_files
 from .pdb_writer import write_pdb
 from .script_writer import build_config, build_script
@@ -78,6 +78,20 @@ def generate(
     # 1. moleditpy-mdff coverage
     ffres = None
     assignment = None
+    ff14sb_note = ""
+    if doc is not None:
+        doc, ff14sb = without_ff14sb(doc)
+        if ff14sb:
+            names = ", ".join(ff14sb)
+            if settings.get("protein_ff", "amber14") == "amber14":
+                ff14sb_note = f"{names}: Amber ff14SB, assigned by amber14-all.xml from its residue templates"
+            else:
+                out.errors.append(
+                    f"moleditpy-mdff: {names} use Amber ff14SB. Choose the amber14 protein "
+                    "force field, which is the same force field."
+                )
+        if not doc.system:
+            doc = None
     if doc is not None:
         assignment, problems = match_system(doc, data.elements)
         if problems:
@@ -236,6 +250,8 @@ def generate(
     out.summary.append("Box: " + box.describe())
     files = config["forcefield_files"] + ([ffxml_name] if ffxml_name else [])
     out.summary.append("Force field files: " + (", ".join(files) if files else "none"))
+    if ff14sb_note:
+        out.summary.append(ff14sb_note)
     if sdf_files:
         out.summary.append(f"openmmforcefields ({generator}) for: {', '.join(sdf_files)}")
     if ffres is not None and ffres.n_extra_terms and ffxml_name:

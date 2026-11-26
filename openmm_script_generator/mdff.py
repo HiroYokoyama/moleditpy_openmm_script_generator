@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import math
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 FORMAT_NAME = "moleditpy-mdff"
@@ -44,6 +44,7 @@ class MdffMoleculeType:
     exclusions_nrexcl: int = 3
     constraints: list[tuple[int, int, float]] = field(default_factory=list)
     settles: dict[str, float] | None = None
+    force_field: str = ""
 
     @property
     def n_atoms(self) -> int:
@@ -210,6 +211,7 @@ def _parse_type(raw: Any, position: int) -> MdffMoleculeType:
         exclusions_nrexcl=_integer(raw.get("exclusions_nrexcl", 3), f"{where}.exclusions_nrexcl"),
         constraints=constraints,
         settles=settles,
+        force_field=str(raw.get("force_field", "") or ""),
     )
 
 
@@ -301,6 +303,26 @@ def document_warnings(doc: MdffDocument) -> list[str]:
                     f"{mol_type.name}: constraint {i}-{j} is not a bond; the run script adds it explicitly."
                 )
     return warnings
+
+
+#: The ``force_field`` label Force Field Builder gives proteins built with Amber
+#: ff14SB.  OpenMM's amber14-all.xml is the same force field, so these types are
+#: left to it rather than converted.
+FF14SB_LABEL = "Amber ff14SB (proteins)"
+
+
+def without_ff14sb(doc: MdffDocument) -> tuple[MdffDocument, list[str]]:
+    """Return ``doc`` without its ff14SB protein types, and their names."""
+    names = [t.name for t in doc.molecule_types if t.force_field == FF14SB_LABEL]
+    if not names:
+        return doc, []
+    rest = replace(
+        doc,
+        molecule_types=[t for t in doc.molecule_types if t.name not in names],
+        system=[e for e in doc.system if e.type not in names],
+        warnings=list(doc.warnings),
+    )
+    return rest, names
 
 
 def match_system(

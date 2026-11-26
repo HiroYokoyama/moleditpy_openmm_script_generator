@@ -100,6 +100,37 @@ def test_mismatched_mdff_and_missing_water_model_are_errors():
     assert any("water model" in e for e in result.errors)
 
 
+def _ff14sb_doc(names):
+    raw = example("ethanol_water_nacl.mdff.json")
+    for mol_type in raw["molecule_types"]:
+        if mol_type["name"] in names:
+            mol_type["force_field"] = mdff.FF14SB_LABEL
+    return mdff.parse_mdff(raw)
+
+
+def test_ff14sb_types_are_left_to_amber14():
+    """Force Field Builder's ff14SB protein is amber14-all.xml, so it is not converted."""
+    doc = _ff14sb_doc({"ETOH"})
+    rest, names = mdff.without_ff14sb(doc)
+    assert names == ["ETOH"] and [e.type for e in rest.system] == ["SOL", "NA", "CL"]
+    assert len(doc.system) == 4  # the parsed document is not changed
+    result = generate(_data(), _settings(), "0.1.0", doc)
+    assert result.ok, result.errors
+    script = result.files["run_system.py"]
+    namespace = {}
+    exec(compile(script.split("HERE = ")[0], "cfg", "exec"), namespace)  # noqa: S102
+    assert "ETOH" not in namespace["CONFIG"]["templates"]
+    assert "ETOH: Amber ff14SB, assigned by amber14-all.xml" in " ".join(result.summary)
+    # with every type left to amber14 no XML is written
+    result = generate(_data(), _settings(), "0.1.0", _ff14sb_doc({"ETOH", "SOL", "NA", "CL"}))
+    assert "system_mdff.xml" not in result.files
+
+
+def test_ff14sb_types_need_amber14():
+    result = generate(_data(), _settings(protein_ff="charmm36"), "0.1.0", _ff14sb_doc({"ETOH"}))
+    assert any("Choose the amber14 protein force field" in e for e in result.errors)
+
+
 def test_without_mdff_small_molecules_are_reported_and_sdf_written_for_openmmforcefields():
     result = generate(_data(), _settings(), "0.1.0")
     assert result.ok and any("No parameters for residue(s) L01" in w for w in result.warnings)
