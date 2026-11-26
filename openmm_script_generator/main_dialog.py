@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
+    QFrame,
     QGroupBox,
     QHBoxLayout,
     QInputDialog,
@@ -24,6 +25,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QScrollArea,
     QSpinBox,
     QSplitter,
     QTabWidget,
@@ -34,6 +36,7 @@ from PySide6.QtWidgets import (
 from . import cell as cell_mod
 from . import options
 from .mdff import MdffError, load_mdff
+from .wheel_guard import install_wheel_guard
 
 PREVIEW_LINES = 400
 CURRENT_PRESET = "(current settings)"
@@ -65,6 +68,31 @@ def _ispin(lo, hi, step=1, suffix=""):
     return spin
 
 
+def _scrolled(page):
+    """A settings page that scrolls, so a long tab never makes the dialog taller than the
+    screen and pushes its buttons out of reach."""
+    area = QScrollArea()
+    area.setWidgetResizable(True)
+    area.setFrameShape(QFrame.Shape.NoFrame)
+    area.setWidget(page)
+    # Scrolling over a field must not change it: fields take the wheel once clicked.
+    install_wheel_guard(page)
+    return area
+
+
+def fit_to_screen(dialog, fraction=0.9):
+    """Shrink the dialog's first size to the screen it opens on (small laptop screens)."""
+    parent = dialog.parentWidget()
+    screen = parent.screen() if parent is not None else dialog.screen()
+    if screen is None:
+        return
+    area = screen.availableGeometry()
+    dialog.resize(
+        min(dialog.width(), int(area.width() * fraction)),
+        min(dialog.height(), int(area.height() * fraction)),
+    )
+
+
 class OpenMMScriptDialog(QDialog):
     def __init__(
         self,
@@ -81,6 +109,7 @@ class OpenMMScriptDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("OpenMM Script Generator")
         self.resize(1180, 760)
+        fit_to_screen(self)
         self.persistent_settings = persistent_settings if persistent_settings is not None else {}
         self.get_molecule = get_molecule
         self.get_cif_viewer = get_cif_viewer
@@ -201,7 +230,7 @@ class OpenMMScriptDialog(QDialog):
         form.addRow(hydrogens)
         sys_layout.addWidget(ff_group)
         sys_layout.addStretch(1)
-        tabs.addTab(system, "System")
+        tabs.addTab(_scrolled(system), "System")
 
         # Simulation tab
         sim = QWidget()
@@ -252,7 +281,7 @@ class OpenMMScriptDialog(QDialog):
         )
         sim_layout.addWidget(group)
         sim_layout.addStretch(1)
-        tabs.addTab(sim, "Simulation")
+        tabs.addTab(_scrolled(sim), "Simulation")
 
         # Output tab
         out = QWidget()
@@ -293,7 +322,7 @@ class OpenMMScriptDialog(QDialog):
         form.addRow(self.openmm_label)
         out_layout.addWidget(group)
         out_layout.addStretch(1)
-        tabs.addTab(out, "Output")
+        tabs.addTab(_scrolled(out), "Output")
         return tabs
 
     def _build_preview(self):
