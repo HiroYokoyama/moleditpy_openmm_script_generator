@@ -25,7 +25,6 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
 from xml.sax.saxutils import quoteattr
 
 from .mdff import MdffDocument, MdffMoleculeType
@@ -34,12 +33,89 @@ from .symmetry import automorphisms
 #: Residue names OpenMM already knows bonds for (Topology._standardBonds) or
 #: rewrites through pdbNames.xml.  Templates never take these names.
 RESERVED_RESIDUE_NAMES = frozenset(
-    """
-    ALA ARG ASN ASP ASH CYS CYX CYM GLN GLU GLH GLY HIS HID HIE HIP HSD HSE HSP ILE LEU LYS LYN
-    MET PHE PRO SER THR TRP TYR VAL ACE NME NH2 NMA SEC PYL DA DC DG DT DU DI A C G U I
-    RA RC RG RU DA5 DA3 DC5 DC3 DG5 DG3 DT5 DT3 RA5 RA3 RC5 RC3 RG5 RG3 RU5 RU3
-    HOH WAT SOL H2O TIP TIP3 TIP4 TIP5 T3P T4P T5P SPC OPC
-    """.split()
+    [
+        "ALA",
+        "ARG",
+        "ASN",
+        "ASP",
+        "ASH",
+        "CYS",
+        "CYX",
+        "CYM",
+        "GLN",
+        "GLU",
+        "GLH",
+        "GLY",
+        "HIS",
+        "HID",
+        "HIE",
+        "HIP",
+        "HSD",
+        "HSE",
+        "HSP",
+        "ILE",
+        "LEU",
+        "LYS",
+        "LYN",
+        "MET",
+        "PHE",
+        "PRO",
+        "SER",
+        "THR",
+        "TRP",
+        "TYR",
+        "VAL",
+        "ACE",
+        "NME",
+        "NH2",
+        "NMA",
+        "SEC",
+        "PYL",
+        "DA",
+        "DC",
+        "DG",
+        "DT",
+        "DU",
+        "DI",
+        "A",
+        "C",
+        "G",
+        "U",
+        "I",
+        "RA",
+        "RC",
+        "RG",
+        "RU",
+        "DA5",
+        "DA3",
+        "DC5",
+        "DC3",
+        "DG5",
+        "DG3",
+        "DT5",
+        "DT3",
+        "RA5",
+        "RA3",
+        "RC5",
+        "RC3",
+        "RG5",
+        "RG3",
+        "RU5",
+        "RU3",
+        "HOH",
+        "WAT",
+        "SOL",
+        "H2O",
+        "TIP",
+        "TIP3",
+        "TIP4",
+        "TIP5",
+        "T3P",
+        "T4P",
+        "T5P",
+        "SPC",
+        "OPC",
+    ]
 )
 
 
@@ -50,22 +126,22 @@ class TemplateInfo:
     type_name: str
     template: str
     resname: str
-    atom_names: List[str]
+    atom_names: list[str]
     is_water: bool
 
 
 @dataclass
 class FfxmlResult:
     xml: str
-    templates: Dict[str, TemplateInfo]  # keyed by molecule type name
-    extras: Dict[str, List[dict]] = field(default_factory=dict)  # keyed by resname
-    warnings: List[str] = field(default_factory=list)
+    templates: dict[str, TemplateInfo]  # keyed by molecule type name
+    extras: dict[str, list[dict]] = field(default_factory=dict)  # keyed by resname
+    warnings: list[str] = field(default_factory=list)
 
     @property
     def n_extra_terms(self) -> int:
         return sum(len(terms) for terms in self.extras.values())
 
-    def bond_definitions(self, doc: MdffDocument) -> Dict[str, List[Tuple[str, str]]]:
+    def bond_definitions(self, doc: MdffDocument) -> dict[str, list[tuple[str, str]]]:
         """Bonds by atom name for ``Topology.loadBondDefinitions`` (water excluded)."""
         result = {}
         for mol_type in doc.molecule_types:
@@ -82,14 +158,14 @@ def _sanitize(text: str, length: int) -> str:
     return cleaned[:length]
 
 
-def assign_residue_names(doc: MdffDocument, taken=()) -> Dict[str, str]:
+def assign_residue_names(doc: MdffDocument, taken=()) -> dict[str, str]:
     """Unique PDB residue names (at most 4 characters) for every molecule type.
 
     The first water type becomes ``HOH`` so OpenMM's rigid-water handling
     recognises it; other names avoid residues OpenMM treats as standard.
     """
     used = {name.upper() for name in taken}
-    result: Dict[str, str] = {}
+    result: dict[str, str] = {}
     water_done = False
     for mol_type in doc.molecule_types:
         if mol_type.is_water() and not water_done:
@@ -100,9 +176,7 @@ def assign_residue_names(doc: MdffDocument, taken=()) -> Dict[str, str]:
         base = _sanitize(mol_type.name, 4) or "MOL"
         candidate = base
         counter = 1
-        while candidate in used or (
-            candidate in RESERVED_RESIDUE_NAMES and mol_type.n_atoms > 1
-        ):
+        while candidate in used or (candidate in RESERVED_RESIDUE_NAMES and mol_type.n_atoms > 1):
             suffix = str(counter)
             candidate = (base[: 4 - len(suffix)] or "M") + suffix
             counter += 1
@@ -111,7 +185,7 @@ def assign_residue_names(doc: MdffDocument, taken=()) -> Dict[str, str]:
     return result
 
 
-def assign_atom_names(mol_type: MdffMoleculeType, water: bool = False) -> List[str]:
+def assign_atom_names(mol_type: MdffMoleculeType, water: bool = False) -> list[str]:
     """Unique atom names of at most four characters, stable for one type."""
     if water:
         names = []
@@ -123,9 +197,9 @@ def assign_atom_names(mol_type: MdffMoleculeType, water: bool = False) -> List[s
                 h_count += 1
                 names.append(f"H{h_count}")
         return names
-    names: List[str] = []
+    names: list[str] = []
     used = set()
-    counters: Dict[str, int] = {}
+    counters: dict[str, int] = {}
     for atom in mol_type.atoms:
         name = _sanitize(atom.name, 4) if atom.name else ""
         if not name or name in used:
@@ -144,11 +218,11 @@ def _fmt(value: float) -> str:
     return repr(float(value))
 
 
-def _chain_key(atoms: Tuple[int, ...]) -> Tuple[int, ...]:
+def _chain_key(atoms: tuple[int, ...]) -> tuple[int, ...]:
     return min(atoms, atoms[::-1])
 
 
-def _star_centre(atoms: Tuple[int, int, int, int], bonded) -> Optional[int]:
+def _star_centre(atoms: tuple[int, int, int, int], bonded) -> int | None:
     """Position (0-3) of the atom bonded to the other three, else None."""
     for position, centre in enumerate(atoms):
         others = [a for a in atoms if a != centre]
@@ -157,21 +231,21 @@ def _star_centre(atoms: Tuple[int, int, int, int], bonded) -> Optional[int]:
     return None
 
 
-def build_ffxml(doc: MdffDocument, residue_names: Optional[Dict[str, str]] = None) -> FfxmlResult:
+def build_ffxml(doc: MdffDocument, residue_names: dict[str, str] | None = None) -> FfxmlResult:
     """Return the ForceField XML, template metadata and extra terms."""
     residue_names = residue_names or assign_residue_names(doc)
-    templates: Dict[str, TemplateInfo] = {}
-    extras: Dict[str, List[dict]] = {}
-    warnings: List[str] = list(doc.warnings)
+    templates: dict[str, TemplateInfo] = {}
+    extras: dict[str, list[dict]] = {}
+    warnings: list[str] = list(doc.warnings)
 
-    atom_types: List[str] = []
-    residues: List[str] = []
-    bond_lines: List[str] = []
-    angle_lines: List[str] = []
-    proper_lines: List[str] = []
-    improper_default: List[str] = []
-    improper_charmm: List[str] = []
-    nonbonded_lines: List[str] = []
+    atom_types: list[str] = []
+    residues: list[str] = []
+    bond_lines: list[str] = []
+    angle_lines: list[str] = []
+    proper_lines: list[str] = []
+    improper_default: list[str] = []
+    improper_charmm: list[str] = []
+    nonbonded_lines: list[str] = []
 
     used_templates = set()
     for mol_type in doc.molecule_types:
@@ -208,19 +282,17 @@ def build_ffxml(doc: MdffDocument, residue_names: Optional[Dict[str, str]] = Non
 
         for t, atom in zip(types, mol_type.atoms):
             atom_types.append(
-                f'  <Type name={quoteattr(t)} class={quoteattr(t)} '
+                f"  <Type name={quoteattr(t)} class={quoteattr(t)} "
                 f'element={quoteattr(atom.element)} mass="{_fmt(atom.mass)}"/>'
             )
             nonbonded_lines.append(
-                f'  <Atom type={quoteattr(t)} sigma="{_fmt(atom.sigma)}" '
-                f'epsilon="{_fmt(atom.epsilon)}"/>'
+                f'  <Atom type={quoteattr(t)} sigma="{_fmt(atom.sigma)}" epsilon="{_fmt(atom.epsilon)}"/>'
             )
 
         residue = [f"  <Residue name={quoteattr(template)}>"]
         for name, t, atom in zip(names, types, mol_type.atoms):
             residue.append(
-                f"   <Atom name={quoteattr(name)} type={quoteattr(t)} "
-                f'charge="{_fmt(atom.charge)}"/>'
+                f'   <Atom name={quoteattr(name)} type={quoteattr(t)} charge="{_fmt(atom.charge)}"/>'
             )
         bonded = set()
         for i, j, r0, k in mol_type.bonds:
@@ -229,16 +301,12 @@ def build_ffxml(doc: MdffDocument, residue_names: Optional[Dict[str, str]] = Non
                 warnings.append(f"{mol_type.name}: bond {i}-{j} joins an atom to itself; skipped.")
                 continue
             if key in bonded:
-                extra.append(
-                    {"kind": "bond", "atoms": [names[i], names[j]], "length": r0, "k": k}
-                )
+                extra.append({"kind": "bond", "atoms": [names[i], names[j]], "length": r0, "k": k})
                 continue
             bonded.add(key)
-            residue.append(
-                f"   <Bond atomName1={quoteattr(names[i])} atomName2={quoteattr(names[j])}/>"
-            )
+            residue.append(f"   <Bond atomName1={quoteattr(names[i])} atomName2={quoteattr(names[j])}/>")
             bond_lines.append(
-                f'  <Bond type1={quoteattr(types[i])} type2={quoteattr(types[j])} '
+                f"  <Bond type1={quoteattr(types[i])} type2={quoteattr(types[j])} "
                 f'length="{_fmt(r0)}" k="{_fmt(k)}"/>'
             )
         residue.append("  </Residue>")
@@ -260,13 +328,13 @@ def build_ffxml(doc: MdffDocument, residue_names: Optional[Dict[str, str]] = Non
                 continue
             seen_angles.add(key)
             angle_lines.append(
-                f'  <Angle type1={quoteattr(types[i])} type2={quoteattr(types[j])} '
+                f"  <Angle type1={quoteattr(types[i])} type2={quoteattr(types[j])} "
                 f'type3={quoteattr(types[k_atom])} angle="{_fmt(math.radians(theta0))}" '
                 f'k="{_fmt(k)}"/>'
             )
 
-        propers: Dict[Tuple[int, ...], List[Tuple[int, float, float]]] = {}
-        impropers: Dict[Tuple[int, frozenset], Dict[Tuple[int, ...], List]] = {}
+        propers: dict[tuple[int, ...], list[tuple[int, float, float]]] = {}
+        impropers: dict[tuple[int, frozenset], dict[tuple[int, ...], list]] = {}
         for i, j, k_atom, l_atom, n, phase, k, improper in mol_type.torsions:
             atoms = (i, j, k_atom, l_atom)
             term = (n, math.radians(phase), k)
@@ -289,9 +357,7 @@ def build_ffxml(doc: MdffDocument, residue_names: Optional[Dict[str, str]] = Non
                 position = _star_centre(atoms, bonded)
                 if position is not None:
                     centre = atoms[position]
-                    group = impropers.setdefault(
-                        (centre, frozenset(a for a in atoms if a != centre)), {}
-                    )
+                    group = impropers.setdefault((centre, frozenset(a for a in atoms if a != centre)), {})
                     group.setdefault(_chain_key(atoms), []).append(term)
                     continue
             extra.append(_torsion_extra(names, atoms, term))
@@ -305,20 +371,16 @@ def build_ffxml(doc: MdffDocument, residue_names: Optional[Dict[str, str]] = Non
                     for term in terms:
                         extra.append(_torsion_extra(names, atoms, term))
                 continue
-            (atoms, terms), = variants.items()
+            ((atoms, terms),) = variants.items()
             position = atoms.index(centre)
             if position in (1, 3):  # use the reversed dihedral, which is equal
                 atoms = atoms[::-1]
                 position = 3 - position
             if position == 2:  # (a, b, c, d) -> default ordering type1=c
                 ordered = [atoms[2], atoms[0], atoms[1], atoms[3]]
-                improper_default.append(
-                    _torsion_line("Improper", [types[a] for a in ordered], terms)
-                )
+                improper_default.append(_torsion_line("Improper", [types[a] for a in ordered], terms))
             else:  # centre first -> charmm ordering keeps (c, a, b, d)
-                improper_charmm.append(
-                    _torsion_line("Improper", [types[a] for a in atoms], terms)
-                )
+                improper_charmm.append(_torsion_line("Improper", [types[a] for a in atoms], terms))
 
         for i, j, r0 in mol_type.constraints:
             if frozenset((i, j)) not in bonded:
@@ -338,8 +400,10 @@ def build_ffxml(doc: MdffDocument, residue_names: Optional[Dict[str, str]] = Non
         "<ForceField>",
         " <Info>",
         "  <Source>" + _escape(doc.source or doc.path or "moleditpy-mdff") + "</Source>",
-        "  <Reference>Converted from moleditpy-mdff version 1 by the MoleditPy OpenMM "
-        "Script Generator.</Reference>",
+        (
+            "  <Reference>Converted from moleditpy-mdff version 1 by the MoleditPy OpenMM "
+            "Script Generator.</Reference>"
+        ),
         " </Info>",
         " <AtomTypes>",
         *atom_types,
@@ -377,7 +441,7 @@ def build_ffxml(doc: MdffDocument, residue_names: Optional[Dict[str, str]] = Non
 SCALE_SNAP = 1e-3
 
 
-def scale_factors(doc: MdffDocument) -> Tuple[float, float]:
+def scale_factors(doc: MdffDocument) -> tuple[float, float]:
     """(coulomb14scale, lj14scale) as written to the XML."""
     coulomb = doc.fudge_qq
     if abs(coulomb - 5.0 / 6.0) < SCALE_SNAP:
@@ -426,14 +490,14 @@ class _Symmetry:
                 degree[i] += 1
                 degree[j] += 1
             self.group = {a: (mol_type.atoms[a].element, degree[a]) for a in range(n)}
-            groups: Dict[tuple, List[int]] = {}
+            groups: dict[tuple, list[int]] = {}
             for a in range(n):
                 groups.setdefault(self.group[a], []).append(a)
             self.free = {a for g in groups.values() if len(g) > 1 for a in g}
-        self.angles: Dict[tuple, list] = {}
+        self.angles: dict[tuple, list] = {}
         for i, j, k, theta0, kk in mol_type.angles:
             self.angles.setdefault(_chain_key((i, j, k)), []).append((round(theta0, 9), round(kk, 6)))
-        self.torsions: Dict[tuple, list] = {}
+        self.torsions: dict[tuple, list] = {}
         for i, j, k, l, n_, phase, kk, improper in mol_type.torsions:
             if kk == 0.0:
                 continue
@@ -446,14 +510,14 @@ class _Symmetry:
     def _atoms_fixed(self, atoms) -> bool:
         return all(a not in self.free for a in atoms)
 
-    def asymmetric_atoms(self) -> List[int]:
+    def asymmetric_atoms(self) -> list[int]:
         atoms = self.mol_type.atoms
 
         def params(a):
             return (round(atoms[a].charge, 9), round(atoms[a].sigma, 9), round(atoms[a].epsilon, 9))
 
         if not self.complete:
-            by_group: Dict[tuple, set] = {}
+            by_group: dict[tuple, set] = {}
             for a in self.free:
                 by_group.setdefault(self.group[a], set()).add(params(a))
             return sorted(a for a in self.free if len(by_group[self.group[a]]) > 1)
@@ -474,9 +538,7 @@ class _Symmetry:
         if not self.complete:
             return self._atoms_fixed(atoms)
         reference = self.angles.get(_chain_key(atoms))
-        return all(
-            self.angles.get(_chain_key(tuple(p[a] for a in atoms))) == reference for p in self.perms
-        )
+        return all(self.angles.get(_chain_key(tuple(p[a] for a in atoms))) == reference for p in self.perms)
 
     def torsion_invariant(self, atoms, improper) -> bool:
         if not self.complete:
@@ -488,7 +550,7 @@ class _Symmetry:
         )
 
 
-def _torsion_line(tag: str, types: List[str], terms) -> str:
+def _torsion_line(tag: str, types: list[str], terms) -> str:
     parts = [f"  <{tag}"]
     for position, t in enumerate(types, start=1):
         parts.append(f"type{position}={quoteattr(t)}")

@@ -29,6 +29,8 @@ SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.json")
 WINDOW_ID = "openmm_script_generator_dialog"
 CELL_PROPERTY = "moleditpy_cell"
 
+_log = logging.getLogger(__name__)
+
 _context = None
 _dialog_opened = False
 #: last moleditpy_cell seen on the molecule: {"cell": json text, "n_atoms": int}
@@ -48,11 +50,9 @@ def _remember_cell(mol):
     try:
         if mol is not None and mol.HasProp(CELL_PROPERTY):
             _remembered_cell.clear()
-            _remembered_cell.update(
-                {"cell": mol.GetProp(CELL_PROPERTY), "n_atoms": int(mol.GetNumAtoms())}
-            )
-    except Exception as exc:  # pragma: no cover - RDKit guard
-        logging.debug("%s: could not remember the cell: %s", PLUGIN_NAME, exc)
+            _remembered_cell.update({"cell": mol.GetProp(CELL_PROPERTY), "n_atoms": int(mol.GetNumAtoms())})
+    except Exception as exc:  # noqa: BLE001 - pragma: no cover - RDKit guard
+        _log.debug("%s: could not remember the cell: %s", PLUGIN_NAME, exc)
 
 
 def _remembered_cell_for(n_atoms):
@@ -71,8 +71,8 @@ def _restore_cell_on_molecule():
             return
         if mol.GetNumAtoms() == _remembered_cell.get("n_atoms"):
             mol.SetProp(CELL_PROPERTY, _remembered_cell["cell"])
-    except Exception as exc:  # pragma: no cover - host API guard
-        logging.debug("%s: could not restore the cell: %s", PLUGIN_NAME, exc)
+    except Exception as exc:  # noqa: BLE001 - pragma: no cover - host API guard
+        _log.debug("%s: could not restore the cell: %s", PLUGIN_NAME, exc)
 
 
 def _open_dialog(mw):
@@ -93,8 +93,8 @@ def _open_dialog(mw):
         try:
             if _context is not None:
                 return _context.current_molecule
-        except Exception as exc:  # pragma: no cover - host API guard
-            logging.warning("%s: could not read the molecule: %s", PLUGIN_NAME, exc)
+        except Exception as exc:  # noqa: BLE001 - pragma: no cover - host API guard
+            _log.warning("%s: could not read the molecule: %s", PLUGIN_NAME, exc)
         return getattr(mw, "current_mol", None)
 
     def _get_cif_viewer():
@@ -102,15 +102,15 @@ def _open_dialog(mw):
             from .structure_panel import find_cif_viewer_widget
 
             return find_cif_viewer_widget(mw)
-        except Exception as exc:  # pragma: no cover - other plugin's internals
-            logging.debug("%s: CIF Viewer lookup failed: %s", PLUGIN_NAME, exc)
+        except Exception as exc:  # noqa: BLE001 - pragma: no cover - other plugin's internals
+            _log.debug("%s: CIF Viewer lookup failed: %s", PLUGIN_NAME, exc)
             return None
 
     def _mark_modified():
         if _context is not None:
             try:
                 _context.mark_project_modified()
-            except Exception:  # pragma: no cover - host API guard
+            except Exception:  # noqa: BLE001, S110 - pragma: no cover - host API guard
                 pass
 
     _dialog_opened = True
@@ -143,11 +143,13 @@ def initialize(context):
     def save_state():
         try:
             _remember_cell(context.current_molecule)
-        except Exception:  # pragma: no cover - host API guard
+        except Exception:  # noqa: BLE001, S110 - pragma: no cover - host API guard
             pass
         state = {}
-        if _dialog_opened and current_settings:
-            state["settings"] = dict(current_settings)
+        if _dialog_opened:
+            from .options import normalize_settings
+
+            state["settings"] = normalize_settings(current_settings)
         if _remembered_cell:
             state["cell"] = dict(_remembered_cell)
         return state
@@ -163,8 +165,8 @@ def initialize(context):
             if dlg is not None:
                 try:
                     dlg.apply_settings(current_settings)
-                except Exception as exc:  # pragma: no cover - host API guard
-                    logging.warning("%s: could not apply loaded state: %s", PLUGIN_NAME, exc)
+                except Exception as exc:  # noqa: BLE001 - pragma: no cover - host API guard
+                    _log.warning("%s: could not apply loaded state: %s", PLUGIN_NAME, exc)
         cell = data.get("cell")
         if isinstance(cell, dict) and isinstance(cell.get("cell"), str):
             _remembered_cell.clear()
@@ -174,7 +176,7 @@ def initialize(context):
                 from PySide6.QtCore import QTimer
 
                 QTimer.singleShot(0, _restore_cell_on_molecule)
-            except Exception:  # pragma: no cover - Qt guard
+            except Exception:  # noqa: BLE001, S110 - pragma: no cover - Qt guard
                 pass
 
     def handle_reset():

@@ -1,3 +1,15 @@
+target-version = "py39"
+line-length = 110
 
-# Common tool copies are validated and formatted only in their canonical repositories.
-extend-exclude = ["scripts/release_common.py", "tests/plugin_api_checker.py"]
+# Common tool copies are validated and formatted only in their canonical repositories,
+# and the periodic shared modules are vendored from moleditpy-periodic-shared.
+extend-exclude = [
+    "_periodic_shared",
+    "openmm_script_generator/cell_model.py",
+    "openmm_script_generator/elements.py",
+    "openmm_script_generator/cell_preview.py",
+    "openmm_script_generator/structure_panel.py",
+    "scripts/materialize_shared.py",
+    "scripts/release_common.py",
+    "tests/plugin_api_checker.py",
+]

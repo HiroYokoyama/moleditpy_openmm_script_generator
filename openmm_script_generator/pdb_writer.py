@@ -8,7 +8,7 @@ every non-standard residue, so OpenMM never depends on them.
 
 from __future__ import annotations
 
-from typing import Dict, Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 
 def _format_index(index: int, places: int) -> str:
@@ -29,11 +29,11 @@ def write_pdb(
     system,
     elements: Sequence[str],
     coords,
-    lengths: Optional[Tuple[float, float, float]] = None,
-    angles: Optional[Tuple[float, float, float]] = None,
-    bonds: Sequence[Tuple[int, int]] = (),
+    lengths: tuple[float, float, float] | None = None,
+    angles: tuple[float, float, float] | None = None,
+    bonds: Sequence[tuple[int, int]] = (),
     title: str = "",
-    formal_charges: Optional[Sequence[int]] = None,
+    formal_charges: Sequence[int] | None = None,
 ) -> str:
     """Return PDB text.  ``coords`` are indexed by host atom index (Angstrom)."""
     lines = []
@@ -43,10 +43,8 @@ def write_pdb(
     if lengths is not None:
         a, b, c = lengths
         al, be, ga = angles or (90.0, 90.0, 90.0)
-        lines.append(
-            f"CRYST1{a:9.3f}{b:9.3f}{c:9.3f}{al:7.2f}{be:7.2f}{ga:7.2f} P 1           1"
-        )
-    serial_of: Dict[int, int] = {}
+        lines.append(f"CRYST1{a:9.3f}{b:9.3f}{c:9.3f}{al:7.2f}{be:7.2f}{ga:7.2f} P 1           1")
+    serial_of: dict[int, int] = {}
     serial = 0
     previous_chain = None
     previous_kind = None
@@ -77,7 +75,7 @@ def write_pdb(
 
     if serial <= 99999 and bonds:
         hetero_atoms = {a for r in system.residues if r.hetero for a in r.atoms}
-        partners: Dict[int, list] = {}
+        partners: dict[int, list] = {}
         for i, j in bonds:
             if i in hetero_atoms or j in hetero_atoms:
                 partners.setdefault(serial_of[i], []).append(serial_of[j])

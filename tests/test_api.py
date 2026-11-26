@@ -1,5 +1,5 @@
-import unittest
 import importlib.util
+import unittest
 from pathlib import Path
 
 # Paths
@@ -12,9 +12,7 @@ _DEFAULT_APP_CANDIDATES = [
     _WORKSPACE_ROOT / "python_molecular_editor",
     _PLUGIN_ROOT / "python_molecular_editor",  # CI path
 ]
-_APP_PATH = next(
-    (p for p in _DEFAULT_APP_CANDIDATES if p and (p / "moleditpy").exists()), None
-)
+_APP_PATH = next((p for p in _DEFAULT_APP_CANDIDATES if p and (p / "moleditpy").exists()), None)
 
 # Skip conditions
 HAS_APP = _APP_PATH is not None
@@ -31,9 +29,7 @@ def _load_checker():
 
 
 class TestAPIChecker(unittest.TestCase):
-    @unittest.skipUnless(
-        HAS_APP, "Main application repository (python_molecular_editor) not found"
-    )
+    @unittest.skipUnless(HAS_APP, "Main application repository (python_molecular_editor) not found")
     def test_no_unknown_api_accesses(self):
         checker_mod = _load_checker()
 

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import datetime
 import pprint
-from typing import Dict, List, Optional
 
 from .options import PERIODIC_METHODS, VIRTUAL_SITE_WATERS, forcefield_files
 
@@ -18,11 +17,11 @@ from .options import PERIODIC_METHODS, VIRTUAL_SITE_WATERS, forcefield_files
 def build_config(
     settings: dict,
     pdb_name: str,
-    ffxml_name: Optional[str] = None,
-    templates: Optional[Dict[str, str]] = None,
-    extra_terms: Optional[Dict[str, List[dict]]] = None,
-    bond_definitions: Optional[Dict[str, list]] = None,
-    sdf_files: Optional[Dict[str, str]] = None,
+    ffxml_name: str | None = None,
+    templates: dict[str, str] | None = None,
+    extra_terms: dict[str, list[dict]] | None = None,
+    bond_definitions: dict[str, list] | None = None,
+    sdf_files: dict[str, str] | None = None,
     periodic: bool = False,
 ) -> dict:
     """The ``CONFIG`` dictionary written into the script."""
@@ -85,7 +84,7 @@ def build_config(
 
 
 def build_script(config: dict, version: str, summary: str = "", script_name: str = "run_openmm.py") -> str:
-    stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    stamp = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M")
     header = HEADER.format(
         version=version,
         stamp=stamp,
@@ -526,6 +525,8 @@ def main(argv=None):
     with open(here(CONFIG["final_pdb"]), "w") as handle:
         app.PDBFile.writeFile(topology, state.getPositions(), handle)
     simulation.saveState(here(CONFIG["final_state"]))
+    if reporters["checkpoint"]:
+        simulation.saveCheckpoint(here(reporters["checkpoint"]))
     print("Wrote %s and %s" % (CONFIG["final_pdb"], CONFIG["final_state"]))
     return 0
 

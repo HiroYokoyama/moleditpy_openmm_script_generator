@@ -9,16 +9,16 @@ enumerates them so the converter can detect when they are not.
 
 from __future__ import annotations
 
-from typing import Dict, List, Sequence, Tuple
+from collections.abc import Sequence
 
 
-def _refine(elements: Sequence[str], neighbours: List[List[int]]) -> List[int]:
+def _refine(elements: Sequence[str], neighbours: list[list[int]]) -> list[int]:
     colors = [hash((e, len(nb))) for e, nb in zip(elements, neighbours)]
     for _ in range(len(elements)):
         signatures = [
             (colors[i], tuple(sorted(colors[j] for j in neighbours[i]))) for i in range(len(elements))
         ]
-        palette: Dict[tuple, int] = {}
+        palette: dict[tuple, int] = {}
         new = [palette.setdefault(sig, len(palette)) for sig in signatures]
         if len(set(new)) == len(set(colors)):
             return new
@@ -27,27 +27,27 @@ def _refine(elements: Sequence[str], neighbours: List[List[int]]) -> List[int]:
 
 
 def automorphisms(
-    elements: Sequence[str], bonds: Sequence[Tuple[int, int]], limit: int = 5000
-) -> Tuple[List[Tuple[int, ...]], bool]:
+    elements: Sequence[str], bonds: Sequence[tuple[int, int]], limit: int = 5000
+) -> tuple[list[tuple[int, ...]], bool]:
     """All automorphisms (as permutations), and whether the list is complete.
 
     Enumeration stops after ``limit`` permutations; the result is then marked
     incomplete and callers should assume any same-colour atoms may be swapped.
     """
     n = len(elements)
-    neighbours: List[List[int]] = [[] for _ in range(n)]
+    neighbours: list[list[int]] = [[] for _ in range(n)]
     for i, j in bonds:
         if i != j:
             neighbours[i].append(j)
             neighbours[j].append(i)
     adjacency = [set(nb) for nb in neighbours]
     colors = _refine(elements, neighbours)
-    by_color: Dict[int, List[int]] = {}
+    by_color: dict[int, list[int]] = {}
     for atom, color in enumerate(colors):
         by_color.setdefault(color, []).append(atom)
 
     # Visit atoms breadth-first so each new atom is usually adjacent to a mapped one.
-    order: List[int] = []
+    order: list[int] = []
     seen = set()
     for start in sorted(range(n), key=lambda a: (len(by_color[colors[a]]), a)):
         if start in seen:
@@ -62,7 +62,7 @@ def automorphisms(
                     seen.add(nb)
                     queue.append(nb)
 
-    results: List[Tuple[int, ...]] = []
+    results: list[tuple[int, ...]] = []
     mapping = [-1] * n
     used = [False] * n
     complete = True
@@ -99,7 +99,7 @@ def automorphisms(
     return results, complete
 
 
-def equivalence_classes(n: int, perms: Sequence[Tuple[int, ...]]) -> List[int]:
+def equivalence_classes(n: int, perms: Sequence[tuple[int, ...]]) -> list[int]:
     """Orbit id per atom under the given permutations."""
     parent = list(range(n))
 

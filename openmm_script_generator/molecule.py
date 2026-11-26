@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Optional, Sequence
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -29,7 +29,7 @@ def molecule_data(mol, title: str = "") -> MoleculeData:
     bonds = [(b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in mol.GetBonds()]
     charges = [mol.GetAtomWithIdx(i).GetFormalCharge() for i in range(n)]
 
-    infos: List[Optional[ResidueInfo]] = []
+    infos: list[ResidueInfo | None] = []
     any_info = False
     for i in range(n):
         info = mol.GetAtomWithIdx(i).GetPDBResidueInfo()
@@ -48,18 +48,18 @@ def molecule_data(mol, title: str = "") -> MoleculeData:
             )
         )
 
-    labels: List[Optional[str]] = [None] * n
+    labels: list[str | None] = [None] * n
     try:
         for frag in Chem.GetMolFrags(mol, asMols=False, sanitizeFrags=False):
             if len(frag) > 200:  # polymers: canonical SMILES is slow and not needed
                 continue
             try:
                 smiles = Chem.MolFragmentToSmiles(mol, atomsToUse=list(frag), canonical=True)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 smiles = None
             for a in frag:
                 labels[a] = smiles
-    except Exception:  # pragma: no cover - RDKit guard
+    except Exception:  # noqa: BLE001, S110 - pragma: no cover - RDKit guard
         pass
 
     def sdf_for_atoms(atoms: Sequence[int]) -> str:

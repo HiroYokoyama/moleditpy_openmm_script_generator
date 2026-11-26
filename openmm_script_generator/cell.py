@@ -13,8 +13,8 @@ coordinates, which is a rigid rotation for a right-handed lattice.
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -27,17 +27,17 @@ CELL_PROPERTY = "moleditpy_cell"
 class CellSpec:
     lattice: np.ndarray  # rows are cell vectors, Angstrom
     origin: np.ndarray
-    pbc: Tuple[bool, bool, bool] = (True, True, True)
+    pbc: tuple[bool, bool, bool] = (True, True, True)
     source: str = ""
 
 
 @dataclass
 class Box:
     coords: np.ndarray  # Angstrom, in the box frame
-    lengths: Optional[Tuple[float, float, float]] = None
-    angles: Optional[Tuple[float, float, float]] = None
+    lengths: tuple[float, float, float] | None = None
+    angles: tuple[float, float, float] | None = None
     source: str = "none"
-    notes: List[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
 
     @property
     def periodic(self) -> bool:
@@ -61,7 +61,7 @@ def parse_cell_json(text: str, source: str = CELL_PROPERTY) -> CellSpec:
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{source} is not valid JSON: {exc}") from None
     if not isinstance(data, dict):
-        raise ValueError(f"{source} must be a JSON object")
+        raise ValueError(f"{source} must be a JSON object")  # noqa: TRY004 - callers expect ValueError
     lattice = np.asarray(data.get("lattice"), dtype=float)
     if lattice.shape != (3, 3) or not np.all(np.isfinite(lattice)):
         raise ValueError(f"{source} has no 3x3 lattice")
@@ -74,7 +74,7 @@ def parse_cell_json(text: str, source: str = CELL_PROPERTY) -> CellSpec:
     return CellSpec(lattice, origin, tuple(bool(p) for p in pbc), source)
 
 
-def cell_from_molecule(mol) -> Optional[CellSpec]:
+def cell_from_molecule(mol) -> CellSpec | None:
     """The ``moleditpy_cell`` property of an RDKit molecule, or None."""
     if mol is None:
         return None
@@ -84,11 +84,11 @@ def cell_from_molecule(mol) -> Optional[CellSpec]:
         return parse_cell_json(mol.GetProp(CELL_PROPERTY), "the molecule's moleditpy_cell")
     except ValueError:
         raise
-    except Exception:  # pragma: no cover - non-RDKit objects
+    except Exception:  # noqa: BLE001 - pragma: no cover - non-RDKit objects
         return None
 
 
-def cell_from_viewer(widget) -> Optional[CellSpec]:
+def cell_from_viewer(widget) -> CellSpec | None:
     """Lattice of the structure shown in the CIF Viewer panel, or None."""
     structure = getattr(widget, "structure", None) if widget is not None else None
     lattice = getattr(structure, "lattice", None)
@@ -144,8 +144,12 @@ def box_from_padding(coords: np.ndarray, padding: float) -> Box:
     low, high = coords.min(axis=0), coords.max(axis=0)
     lengths = np.maximum(high - low + 2.0 * float(padding), 1.0)
     shifted = coords - low + float(padding)
-    return Box(shifted, tuple(float(v) for v in lengths), (90.0, 90.0, 90.0),
-               f"the molecule's extent plus {float(padding):g} A padding")
+    return Box(
+        shifted,
+        tuple(float(v) for v in lengths),
+        (90.0, 90.0, 90.0),
+        f"the molecule's extent plus {float(padding):g} A padding",
+    )
 
 
 def box_from_lengths(coords: np.ndarray, lengths: Sequence[float]) -> Box:
@@ -162,8 +166,9 @@ def box_from_lengths(coords: np.ndarray, lengths: Sequence[float]) -> Box:
     return box
 
 
-def resolve_box(coords, mode: str, molecule_cell=None, viewer_cell=None,
-                padding: float = 10.0, lengths=(30.0, 30.0, 30.0)) -> Box:
+def resolve_box(
+    coords, mode: str, molecule_cell=None, viewer_cell=None, padding: float = 10.0, lengths=(30.0, 30.0, 30.0)
+) -> Box:
     """Pick the box for ``mode`` in ``auto``/``molecule``/``cif``/``padding``/``lengths``/``none``."""
     coords = np.asarray(coords, dtype=float).reshape(-1, 3)
     if mode == "none":

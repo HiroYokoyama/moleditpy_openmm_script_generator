@@ -6,8 +6,9 @@ host molecule (see ``molecule.py``) and calls :func:`generate`.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Callable
 
 import numpy as np
 
@@ -22,24 +23,24 @@ from .system_model import ResidueInfo, build_system
 
 @dataclass
 class MoleculeData:
-    elements: List[str]
+    elements: list[str]
     coords: np.ndarray  # (n, 3) Angstrom
-    bonds: List[Tuple[int, int]] = field(default_factory=list)
-    residue_info: Optional[List[Optional[ResidueInfo]]] = None
-    fragment_labels: Optional[List[Optional[str]]] = None
-    formal_charges: Optional[List[int]] = None
+    bonds: list[tuple[int, int]] = field(default_factory=list)
+    residue_info: list[ResidueInfo | None] | None = None
+    fragment_labels: list[str | None] | None = None
+    formal_charges: list[int] | None = None
     title: str = ""
     #: returns an SDF block for a list of host atom indices (one fragment)
-    sdf_for_atoms: Optional[Callable[[Sequence[int]], str]] = None
+    sdf_for_atoms: Callable[[Sequence[int]], str] | None = None
 
 
 @dataclass
 class GeneratedFiles:
-    files: Dict[str, str] = field(default_factory=dict)  # file name -> text
+    files: dict[str, str] = field(default_factory=dict)  # file name -> text
     script_name: str = ""
-    summary: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
-    errors: List[str] = field(default_factory=list)
+    summary: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -63,7 +64,7 @@ def generate(
     data: MoleculeData,
     settings: dict,
     version: str,
-    doc: Optional[MdffDocument] = None,
+    doc: MdffDocument | None = None,
     molecule_cell=None,
     viewer_cell=None,
 ) -> GeneratedFiles:
@@ -108,7 +109,11 @@ def generate(
             molecule_cell,
             viewer_cell,
             float(settings.get("padding", 10.0)),
-            (float(settings.get("box_a", 30.0)), float(settings.get("box_b", 30.0)), float(settings.get("box_c", 30.0))),
+            (
+                float(settings.get("box_a", 30.0)),
+                float(settings.get("box_b", 30.0)),
+                float(settings.get("box_c", 30.0)),
+            ),
         )
     except ValueError as exc:
         out.errors.append(str(exc))
@@ -144,7 +149,7 @@ def generate(
         )
     others = system.other_residue_names()
     generator = settings.get("small_molecule_generator", "none")
-    sdf_files: Dict[str, str] = {}
+    sdf_files: dict[str, str] = {}
     if others:
         if generator == "none":
             out.warnings.append(
@@ -159,7 +164,7 @@ def generate(
                 residue = system.first_residue(resname)
                 try:
                     block = data.sdf_for_atoms(residue.atoms)
-                except Exception as exc:  # RDKit sanitisation problems
+                except Exception as exc:  # noqa: BLE001 - RDKit sanitisation problems
                     out.errors.append(f"Could not write an SDF for residue {resname}: {exc}")
                     continue
                 name = f"{base}_{resname}.sdf"
@@ -216,8 +221,13 @@ def generate(
         box.periodic,
     )
     pieces = [f"{system.n_atoms} atoms in {len(system.residues)} residues"]
-    kinds = [("mdff", "from mdff"), ("protein", "protein/nucleic"), ("water", "water"),
-             ("ion", "ions"), ("other", "unparameterised")]
+    kinds = [
+        ("mdff", "from mdff"),
+        ("protein", "protein/nucleic"),
+        ("water", "water"),
+        ("ion", "ions"),
+        ("other", "unparameterised"),
+    ]
     detail = ", ".join(f"{counts[k]} {label}" for k, label in kinds if counts.get(k))
     if detail:
         pieces.append(f"({detail})")

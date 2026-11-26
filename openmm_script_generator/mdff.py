@@ -10,8 +10,9 @@ from __future__ import annotations
 
 import json
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 FORMAT_NAME = "moleditpy-mdff"
 SUPPORTED_VERSIONS = (1,)
@@ -35,14 +36,14 @@ class MdffAtom:
 @dataclass
 class MdffMoleculeType:
     name: str
-    atoms: List[MdffAtom]
-    bonds: List[Tuple[int, int, float, float]]  # i, j, r0 (nm), k (kJ/mol/nm^2)
-    angles: List[Tuple[int, int, int, float, float]]  # i, j, k, theta0 (deg), k
+    atoms: list[MdffAtom]
+    bonds: list[tuple[int, int, float, float]]  # i, j, r0 (nm), k (kJ/mol/nm^2)
+    angles: list[tuple[int, int, int, float, float]]  # i, j, k, theta0 (deg), k
     # i, j, k, l, periodicity, phase (deg), k (kJ/mol), improper
-    torsions: List[Tuple[int, int, int, int, int, float, float, bool]]
+    torsions: list[tuple[int, int, int, int, int, float, float, bool]]
     exclusions_nrexcl: int = 3
-    constraints: List[Tuple[int, int, float]] = field(default_factory=list)
-    settles: Optional[Dict[str, float]] = None
+    constraints: list[tuple[int, int, float]] = field(default_factory=list)
+    settles: dict[str, float] | None = None
 
     @property
     def n_atoms(self) -> int:
@@ -53,7 +54,7 @@ class MdffMoleculeType:
         return sum(atom.charge for atom in self.atoms)
 
     @property
-    def elements(self) -> List[str]:
+    def elements(self) -> list[str]:
         return [atom.element for atom in self.atoms]
 
     def is_water(self) -> bool:
@@ -73,12 +74,12 @@ class MdffDocument:
     combination_rule: int
     fudge_lj: float
     fudge_qq: float
-    molecule_types: List[MdffMoleculeType]
-    system: List[MdffSystemEntry]
+    molecule_types: list[MdffMoleculeType]
+    system: list[MdffSystemEntry]
     path: str = ""
-    warnings: List[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
-    def type_by_name(self, name: str) -> Optional[MdffMoleculeType]:
+    def type_by_name(self, name: str) -> MdffMoleculeType | None:
         for mol_type in self.molecule_types:
             if mol_type.name == name:
                 return mol_type
@@ -270,7 +271,7 @@ def load_mdff(path: str) -> MdffDocument:
     return parse_mdff(data, path=path)
 
 
-def document_warnings(doc: MdffDocument) -> List[str]:
+def document_warnings(doc: MdffDocument) -> list[str]:
     """Things OpenMM cannot reproduce exactly, or that look wrong."""
     warnings = []
     if doc.combination_rule != 2:
@@ -297,13 +298,14 @@ def document_warnings(doc: MdffDocument) -> List[str]:
         for i, j, _r in mol_type.constraints:
             if frozenset((i, j)) not in bonded:
                 warnings.append(
-                    f"{mol_type.name}: constraint {i}-{j} is not a bond; the run script "
-                    "adds it explicitly."
+                    f"{mol_type.name}: constraint {i}-{j} is not a bond; the run script adds it explicitly."
                 )
     return warnings
 
 
-def match_system(doc: MdffDocument, elements: Sequence[str]) -> Tuple[List[Optional[Tuple[str, int, int]]], List[str]]:
+def match_system(
+    doc: MdffDocument, elements: Sequence[str]
+) -> tuple[list[tuple[str, int, int] | None], list[str]]:
     """Map every host atom to ``(type name, copy number, index within type)``.
 
     Returns the per-atom assignment (None for atoms the file does not cover) and
@@ -311,8 +313,8 @@ def match_system(doc: MdffDocument, elements: Sequence[str]) -> Tuple[List[Optio
     the assignment is cleared when any are found.
     """
     n = len(elements)
-    assignment: List[Optional[Tuple[str, int, int]]] = [None] * n
-    problems: List[str] = []
+    assignment: list[tuple[str, int, int] | None] = [None] * n
+    problems: list[str] = []
     if not doc.system:
         problems.append(
             'The file has no "system" section, so its molecule types cannot be placed '

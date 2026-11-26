@@ -5,16 +5,15 @@ from __future__ import annotations
 import copy
 import json
 import os
-from typing import Dict, List, Tuple
 
-PROTEIN_FORCE_FIELDS: List[Tuple[str, str]] = [
+PROTEIN_FORCE_FIELDS: list[tuple[str, str]] = [
     ("amber14", "Amber14 (ff14SB, nucleic acids, lipids, GLYCAM)"),
     ("charmm36", "CHARMM36"),
     ("none", "None (moleditpy-mdff / openmmforcefields only)"),
 ]
 
 #: water model id -> label, per protein force field family
-WATER_MODELS: Dict[str, List[Tuple[str, str]]] = {
+WATER_MODELS: dict[str, list[tuple[str, str]]] = {
     "amber14": [
         ("tip3p", "TIP3P"),
         ("tip3pfb", "TIP3P-FB"),
@@ -141,7 +140,7 @@ def get_default_settings() -> dict:
 
 
 #: Settings each built-in preset changes; everything else keeps its value.
-BUILTIN_PRESETS: Dict[str, dict] = {
+BUILTIN_PRESETS: dict[str, dict] = {
     "Vacuum quick test": {
         "box_mode": "none",
         "nonbonded_method": "NoCutoff",
@@ -231,7 +230,7 @@ def apply_preset(settings: dict, name: str, user_presets=None) -> dict:
     return normalize_settings(merged)
 
 
-def forcefield_files(settings: dict) -> List[str]:
+def forcefield_files(settings: dict) -> list[str]:
     """Built-in OpenMM force field files for the selected families."""
     family = settings.get("protein_ff", "amber14")
     water = settings.get("water_model", "tip3p")

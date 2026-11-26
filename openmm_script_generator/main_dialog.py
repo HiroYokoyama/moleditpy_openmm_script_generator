@@ -187,11 +187,16 @@ class OpenMMScriptDialog(QDialog):
         clear.clicked.connect(lambda: self.mdff_edit.setText(""))
         mdff_row.addWidget(clear)
         form.addRow("moleditpy-mdff:", mdff_row)
-        form.addRow("Other molecules:", self._register("small_molecule_generator", _combo(options.SMALL_MOLECULE_GENERATORS)))
+        form.addRow(
+            "Other molecules:",
+            self._register("small_molecule_generator", _combo(options.SMALL_MOLECULE_GENERATORS)),
+        )
         form.addRow("OpenFF version:", self._register("smirnoff_version", QLineEdit()))
         form.addRow("GAFF version:", self._register("gaff_version", QLineEdit()))
         hydrogens = QHBoxLayout()
-        hydrogens.addWidget(self._register("add_hydrogens", QCheckBox("Add missing hydrogens (standard residues), pH")))
+        hydrogens.addWidget(
+            self._register("add_hydrogens", QCheckBox("Add missing hydrogens (standard residues), pH"))
+        )
         hydrogens.addWidget(self._register("ph", _dspin(0.0, 14.0, 1, 0.5)))
         form.addRow(hydrogens)
         sys_layout.addWidget(ff_group)
@@ -203,13 +208,17 @@ class OpenMMScriptDialog(QDialog):
         sim_layout = QVBoxLayout(sim)
         group = QGroupBox("Interactions")
         form = QFormLayout(group)
-        form.addRow("Nonbonded method:", self._register("nonbonded_method", _combo(options.NONBONDED_METHODS)))
+        form.addRow(
+            "Nonbonded method:", self._register("nonbonded_method", _combo(options.NONBONDED_METHODS))
+        )
         form.addRow("Cutoff:", self._register("cutoff", _dspin(0.3, 5.0, 2, 0.1, " nm")))
         form.addRow("Ewald tolerance:", self._register("ewald_tolerance", _dspin(1e-6, 1e-2, 6, 1e-4)))
         form.addRow(self._register("dispersion_correction", QCheckBox("Long-range dispersion correction")))
         form.addRow("Constraints:", self._register("constraints", _combo(options.CONSTRAINTS)))
         form.addRow(self._register("rigid_water", QCheckBox("Rigid water")))
-        form.addRow("Hydrogen mass (0 = off):", self._register("hydrogen_mass", _dspin(0.0, 5.0, 2, 0.5, " amu")))
+        form.addRow(
+            "Hydrogen mass (0 = off):", self._register("hydrogen_mass", _dspin(0.0, 5.0, 2, 0.5, " amu"))
+        )
         sim_layout.addWidget(group)
 
         group = QGroupBox("Dynamics")
@@ -220,17 +229,27 @@ class OpenMMScriptDialog(QDialog):
         form.addRow("Time step:", self._register("timestep", _dspin(0.1, 10.0, 2, 0.5, " fs")))
         form.addRow(self._register("barostat", QCheckBox("Monte Carlo barostat (NPT)")))
         form.addRow("Pressure:", self._register("pressure", _dspin(0.0, 100000.0, 3, 1.0, " bar")))
-        form.addRow("Barostat interval:", self._register("barostat_frequency", _ispin(1, 100000, 5, " steps")))
+        form.addRow(
+            "Barostat interval:", self._register("barostat_frequency", _ispin(1, 100000, 5, " steps"))
+        )
         form.addRow("MD steps:", self._register("steps", _ispin(0, 2_000_000_000, 1000)))
         sim_layout.addWidget(group)
 
         group = QGroupBox("Minimisation and platform")
         form = QFormLayout(group)
         form.addRow(self._register("minimize", QCheckBox("Minimise before MD")))
-        form.addRow("Tolerance:", self._register("minimize_tolerance", _dspin(0.001, 10000.0, 3, 1.0, " kJ/mol/nm")))
-        form.addRow("Max iterations (0 = until converged):", self._register("minimize_max_iterations", _ispin(0, 10_000_000, 100)))
+        form.addRow(
+            "Tolerance:", self._register("minimize_tolerance", _dspin(0.001, 10000.0, 3, 1.0, " kJ/mol/nm"))
+        )
+        form.addRow(
+            "Max iterations (0 = until converged):",
+            self._register("minimize_max_iterations", _ispin(0, 10_000_000, 100)),
+        )
         form.addRow("Platform:", self._register("platform", _combo([(p, p) for p in options.PLATFORMS])))
-        form.addRow("Precision (CUDA/OpenCL):", self._register("precision", _combo([(p, p) for p in options.PRECISIONS])))
+        form.addRow(
+            "Precision (CUDA/OpenCL):",
+            self._register("precision", _combo([(p, p) for p in options.PRECISIONS])),
+        )
         sim_layout.addWidget(group)
         sim_layout.addStretch(1)
         tabs.addTab(sim, "Simulation")
@@ -244,11 +263,19 @@ class OpenMMScriptDialog(QDialog):
         form.addRow(self._register("dcd", QCheckBox("DCD trajectory")))
         form.addRow(self._register("xyz", QCheckBox("Extended XYZ trajectory (Large System Viewer)")))
         form.addRow(self._register("pdb_trajectory", QCheckBox("Multi-model PDB trajectory")))
-        form.addRow("Trajectory interval:", self._register("trajectory_interval", _ispin(1, 100_000_000, 100, " steps")))
+        form.addRow(
+            "Trajectory interval:",
+            self._register("trajectory_interval", _ispin(1, 100_000_000, 100, " steps")),
+        )
         form.addRow(self._register("state_csv", QCheckBox("State data CSV (energies, temperature, density)")))
-        form.addRow("Report interval:", self._register("report_interval", _ispin(1, 100_000_000, 100, " steps")))
+        form.addRow(
+            "Report interval:", self._register("report_interval", _ispin(1, 100_000_000, 100, " steps"))
+        )
         form.addRow(self._register("checkpoint", QCheckBox("Checkpoints")))
-        form.addRow("Checkpoint interval:", self._register("checkpoint_interval", _ispin(1, 100_000_000, 1000, " steps")))
+        form.addRow(
+            "Checkpoint interval:",
+            self._register("checkpoint_interval", _ispin(1, 100_000_000, 1000, " steps")),
+        )
         out_layout.addWidget(group)
         group = QGroupBox("Check with OpenMM")
         form = QFormLayout(group)
@@ -278,7 +305,11 @@ class OpenMMScriptDialog(QDialog):
         self.script_view = QPlainTextEdit()
         self.pdb_view = QPlainTextEdit()
         self.xml_view = QPlainTextEdit()
-        for view, title in ((self.script_view, "Run script"), (self.pdb_view, "PDB"), (self.xml_view, "Force field XML")):
+        for view, title in (
+            (self.script_view, "Run script"),
+            (self.pdb_view, "PDB"),
+            (self.xml_view, "Force field XML"),
+        ):
             view.setReadOnly(True)
             view.setFont(font)
             view.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
@@ -312,7 +343,7 @@ class OpenMMScriptDialog(QDialog):
         for key, label in options.WATER_MODELS.get(family, options.WATER_MODELS["amber14"]):
             self.water_combo.addItem(label, key)
         index = self.water_combo.findData(selected)
-        self.water_combo.setCurrentIndex(index if index >= 0 else 0)
+        self.water_combo.setCurrentIndex(max(index, 0))
         self.water_combo.blockSignals(False)
 
     def apply_settings(self, settings) -> None:
@@ -384,7 +415,7 @@ class OpenMMScriptDialog(QDialog):
         return text, False
 
     def apply_selected_preset(self):
-        name, user = self._selected_preset()
+        name, _user = self._selected_preset()
         if name is None:
             return
         self.apply_settings(options.apply_preset(self.read_settings(), name, self._store.get("presets")))
@@ -433,7 +464,9 @@ class OpenMMScriptDialog(QDialog):
             self.mdff_edit.setText(path)
 
     def browse_python(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Python with OpenMM", "", "Python (python*);;All files (*)")
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Python with OpenMM", "", "Python (python*);;All files (*)"
+        )
         if path:
             self.python_edit.setText(path)
 
@@ -468,7 +501,7 @@ class OpenMMScriptDialog(QDialog):
         if self.get_cif_viewer is not None:
             try:
                 viewer_cell = cell_mod.cell_from_viewer(self.get_cif_viewer())
-            except Exception:  # pragma: no cover - other plugin's internals
+            except Exception:  # noqa: BLE001 - pragma: no cover - other plugin's internals
                 viewer_cell = None
         return molecule_cell, viewer_cell, notes
 
@@ -482,7 +515,7 @@ class OpenMMScriptDialog(QDialog):
         if self.mark_modified is not None:
             try:
                 self.mark_modified()
-            except Exception:  # pragma: no cover - host API guard
+            except Exception:  # noqa: BLE001, S110 - pragma: no cover - host API guard
                 pass
 
     def update_preview(self, *_args) -> None:
@@ -627,7 +660,9 @@ class OpenMMScriptDialog(QDialog):
         QMessageBox.information(
             self,
             "OpenMM Script Generator",
-            "Wrote:\n" + "\n".join(self._result.files) + f"\n\nto {folder}\n\nRun:  python {self._result.script_name}",
+            "Wrote:\n"
+            + "\n".join(self._result.files)
+            + f"\n\nto {folder}\n\nRun:  python {self._result.script_name}",
         )
 
     def _python(self):
@@ -674,7 +709,9 @@ class OpenMMScriptDialog(QDialog):
 
     def _check_error(self, _error):
         self.check_button.setEnabled(True)
-        self.check_view.appendPlainText(f"\nCould not start the Python interpreter: {self._process.errorString()}")
+        self.check_view.appendPlainText(
+            f"\nCould not start the Python interpreter: {self._process.errorString()}"
+        )
 
     def closeEvent(self, event):
         if self._process is not None and self._process.state() != QProcess.ProcessState.NotRunning:

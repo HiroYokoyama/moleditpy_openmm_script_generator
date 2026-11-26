@@ -13,23 +13,83 @@ exactly one residue of one of these kinds:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Sequence, Tuple
 
 from .ffxml import RESERVED_RESIDUE_NAMES
 
 STANDARD_POLYMER_RESIDUES = frozenset(
-    """
-    ALA ARG ASN ASP ASH CYS CYX CYM GLN GLU GLH GLY HIS HID HIE HIP HSD HSE HSP ILE LEU LYS LYN
-    MET PHE PRO SER THR TRP TYR VAL ACE NME NMA SEC
-    DA DC DG DT A C G U RA RC RG RU DA5 DA3 DC5 DC3 DG5 DG3 DT5 DT3 RA5 RA3 RC5 RC3 RG5 RG3 RU5 RU3
-    """.split()
+    [
+        "ALA",
+        "ARG",
+        "ASN",
+        "ASP",
+        "ASH",
+        "CYS",
+        "CYX",
+        "CYM",
+        "GLN",
+        "GLU",
+        "GLH",
+        "GLY",
+        "HIS",
+        "HID",
+        "HIE",
+        "HIP",
+        "HSD",
+        "HSE",
+        "HSP",
+        "ILE",
+        "LEU",
+        "LYS",
+        "LYN",
+        "MET",
+        "PHE",
+        "PRO",
+        "SER",
+        "THR",
+        "TRP",
+        "TYR",
+        "VAL",
+        "ACE",
+        "NME",
+        "NMA",
+        "SEC",
+        "DA",
+        "DC",
+        "DG",
+        "DT",
+        "A",
+        "C",
+        "G",
+        "U",
+        "RA",
+        "RC",
+        "RG",
+        "RU",
+        "DA5",
+        "DA3",
+        "DC5",
+        "DC3",
+        "DG5",
+        "DG3",
+        "DT5",
+        "DT3",
+        "RA5",
+        "RA3",
+        "RC5",
+        "RC3",
+        "RG5",
+        "RG3",
+        "RU5",
+        "RU3",
+    ]
 )
 
 WATER_ALIASES = frozenset({"HOH", "WAT", "SOL", "H2O", "TIP", "TIP3", "TIP3P", "T3P", "SPC", "OPC", "TP3"})
 
 #: element -> (residue name, atom name) as in OpenMM's amber14 ion templates
-ION_NAMES: Dict[str, Tuple[str, str]] = {
+ION_NAMES: dict[str, tuple[str, str]] = {
     "Li": ("LI", "LI"),
     "Na": ("NA", "NA"),
     "K": ("K", "K"),
@@ -61,11 +121,11 @@ class ResidueInfo:
 class Residue:
     resname: str
     kind: str
-    atoms: List[int]  # host atom indices
-    names: List[str]
+    atoms: list[int]  # host atom indices
+    names: list[str]
     chain: str = "A"
     resseq: int = 1
-    template: Optional[str] = None  # pinned ForceField template name (mdff only)
+    template: str | None = None  # pinned ForceField template name (mdff only)
     label: str = ""  # fragment identity (canonical SMILES when known)
 
     @property
@@ -75,39 +135,39 @@ class Residue:
 
 @dataclass
 class SystemModel:
-    residues: List[Residue]
-    bond_definitions: Dict[str, List[Tuple[str, str]]] = field(default_factory=dict)
-    warnings: List[str] = field(default_factory=list)
+    residues: list[Residue]
+    bond_definitions: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
+    warnings: list[str] = field(default_factory=list)
 
     @property
-    def order(self) -> List[int]:
+    def order(self) -> list[int]:
         return [index for residue in self.residues for index in residue.atoms]
 
     @property
     def n_atoms(self) -> int:
         return sum(len(r.atoms) for r in self.residues)
 
-    def counts(self) -> Dict[str, int]:
-        result: Dict[str, int] = {}
+    def counts(self) -> dict[str, int]:
+        result: dict[str, int] = {}
         for residue in self.residues:
             result[residue.kind] = result.get(residue.kind, 0) + 1
         return result
 
-    def other_residue_names(self) -> List[str]:
+    def other_residue_names(self) -> list[str]:
         names = []
         for residue in self.residues:
             if residue.kind == "other" and residue.resname not in names:
                 names.append(residue.resname)
         return names
 
-    def first_residue(self, resname: str) -> Optional[Residue]:
+    def first_residue(self, resname: str) -> Residue | None:
         for residue in self.residues:
             if residue.resname == resname:
                 return residue
         return None
 
 
-def _fragments(n_atoms: int, bonds: Sequence[Tuple[int, int]]) -> List[int]:
+def _fragments(n_atoms: int, bonds: Sequence[tuple[int, int]]) -> list[int]:
     parent = list(range(n_atoms))
 
     def find(a):
@@ -130,7 +190,7 @@ def _is_water(atoms: Sequence[int], elements, bonded) -> bool:
     return all(frozenset((oxygen, a)) in bonded for a in atoms if a != oxygen)
 
 
-def _water_names(atoms, elements) -> List[str]:
+def _water_names(atoms, elements) -> list[str]:
     names, h = [], 0
     for a in atoms:
         if elements[a] == "O":
@@ -141,8 +201,8 @@ def _water_names(atoms, elements) -> List[str]:
     return names
 
 
-def _element_names(atoms, elements) -> List[str]:
-    counters: Dict[str, int] = {}
+def _element_names(atoms, elements) -> list[str]:
+    counters: dict[str, int] = {}
     names = []
     for a in atoms:
         element = elements[a].upper()
@@ -151,7 +211,7 @@ def _element_names(atoms, elements) -> List[str]:
     return names
 
 
-def _unique_names(names: List[str], atoms, elements) -> List[str]:
+def _unique_names(names: list[str], atoms, elements) -> list[str]:
     if len(set(names)) == len(names) and all(names) and all(len(n) <= 4 for n in names):
         return names
     return _element_names(atoms, elements)
@@ -159,11 +219,11 @@ def _unique_names(names: List[str], atoms, elements) -> List[str]:
 
 def build_system(
     elements: Sequence[str],
-    bonds: Sequence[Tuple[int, int]],
-    residue_info: Optional[Sequence[Optional[ResidueInfo]]] = None,
-    mdff_assignment: Optional[Sequence[Optional[Tuple[str, int, int]]]] = None,
+    bonds: Sequence[tuple[int, int]],
+    residue_info: Sequence[ResidueInfo | None] | None = None,
+    mdff_assignment: Sequence[tuple[str, int, int] | None] | None = None,
     templates=None,
-    fragment_labels: Optional[Sequence[Optional[str]]] = None,
+    fragment_labels: Sequence[str | None] | None = None,
 ) -> SystemModel:
     """Group the atoms into residues.
 
@@ -178,10 +238,10 @@ def build_system(
     bonded = {frozenset(b) for b in bonds}
     fragment = _fragments(n, bonds)
     has_bond = {a for b in bonds for a in b}
-    warnings: List[str] = []
+    warnings: list[str] = []
 
     # 1. Owner key per atom, then groups in order of first appearance.
-    groups: Dict[tuple, List[int]] = {}
+    groups: dict[tuple, list[int]] = {}
     for atom in range(n):
         assigned = mdff_assignment[atom]
         info = residue_info[atom]
@@ -195,10 +255,10 @@ def build_system(
 
     # Atoms of one fragment without residue info but split across owners stay
     # together through the fragment key; nothing else to merge.
-    residues: List[Residue] = []
-    other_signatures: Dict[tuple, str] = {}
+    residues: list[Residue] = []
+    other_signatures: dict[tuple, str] = {}
     used_other_names = set()
-    label_names: Dict[str, int] = {}
+    label_names: dict[str, int] = {}
 
     def other_name(base: str, signature: tuple) -> str:
         if signature in other_signatures:
@@ -226,9 +286,7 @@ def build_system(
                 raise ValueError(f"No template for molecule type {key[1]!r}")
             local = [mdff_assignment[a][2] for a in atoms]
             names = [info.atom_names[i] for i in local]
-            residues.append(
-                Residue(info.resname, "mdff", atoms, names, template=info.template, label=key[1])
-            )
+            residues.append(Residue(info.resname, "mdff", atoms, names, template=info.template, label=key[1]))
             continue
 
         if kind == "pdb":
@@ -249,8 +307,14 @@ def build_system(
                 continue
             signature = _signature(atoms, names, elements, bonded, resname)
             residues.append(
-                Residue(other_name(resname, signature), "other", atoms, names, chain,
-                        label=labels[atoms[0]] or resname)
+                Residue(
+                    other_name(resname, signature),
+                    "other",
+                    atoms,
+                    names,
+                    chain,
+                    label=labels[atoms[0]] or resname,
+                )
             )
             continue
 
@@ -277,7 +341,7 @@ def build_system(
         residue.chain = residue.chain or "A"
 
     # Bonds for residues OpenMM does not already know.
-    bond_definitions: Dict[str, List[Tuple[str, str]]] = {}
+    bond_definitions: dict[str, list[tuple[str, str]]] = {}
     for residue in residues:
         if residue.kind not in ("mdff", "other") or residue.resname in bond_definitions:
             continue
