@@ -64,7 +64,7 @@ class FakeContext:
 
 
 def test_metadata():
-    assert plugin.PLUGIN_VERSION == "0.1.3"
+    assert plugin.PLUGIN_VERSION == "0.1.4"
     assert plugin.PLUGIN_AUTHOR == "HiroYokoyama"
     assert plugin.PLUGIN_LICENSE == "LGPL-3.0-or-later"
     assert plugin.PLUGIN_SUPPORTED_MOLEDITPY_VERSION == ">=5.0.0, <6.0.0"

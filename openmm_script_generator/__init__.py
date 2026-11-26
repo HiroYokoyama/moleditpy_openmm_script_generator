@@ -10,7 +10,7 @@ import logging
 import os
 
 PLUGIN_NAME = "OpenMM Script Generator"
-PLUGIN_VERSION = "0.1.3"
+PLUGIN_VERSION = "0.1.4"
 PLUGIN_AUTHOR = "HiroYokoyama"
 PLUGIN_DESCRIPTION = (
     "Writes a self-contained OpenMM run script and a PDB (with CRYST1) from the current "
@@ -19,7 +19,7 @@ PLUGIN_DESCRIPTION = (
     "reporters, presets and an optional OpenMM check."
 )
 PLUGIN_CATEGORY = "Input Generator"
-PLUGIN_TAGS = ["Generator"]
+PLUGIN_TAGS = ["Generator", "MD"]
 PLUGIN_DEPENDENCIES = []
 PLUGIN_OPTIONAL_DEPENDENCIES = ["openmm", "openmmforcefields"]
 PLUGIN_SUPPORTED_MOLEDITPY_VERSION = ">=5.0.0, <6.0.0"
