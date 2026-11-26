@@ -10,7 +10,7 @@ import logging
 import os
 
 PLUGIN_NAME = "OpenMM Script Generator"
-PLUGIN_VERSION = "0.1.2"
+PLUGIN_VERSION = "0.1.3"
 PLUGIN_AUTHOR = "HiroYokoyama"
 PLUGIN_DESCRIPTION = (
     "Writes a self-contained OpenMM run script and a PDB (with CRYST1) from the current "

@@ -83,6 +83,12 @@ converter enumerates the graph's symmetries to handle this:
 
 The resulting energies match a system built term by term from the mdff file.
 
+**Proteins from Force Field Builder** are not converted. Their molecule type is marked
+`Amber ff14SB (proteins)`, and OpenMM's `amber14-all.xml` is the same force field, so the
+protein atoms are written as ordinary PDB residues and OpenMM assigns them from its own
+residue templates. The other molecule types of the file are converted as above. With a
+CHARMM protein force field selected, such a file is an error.
+
 Impropers are written with the atom ordering OpenMM expects. The 1-4 scaling of
 the mdff file must agree with the built-in force field: Amber uses 0.8333/0.5,
 CHARMM uses 1.0/1.0. The dialog refuses combinations OpenMM would reject.
